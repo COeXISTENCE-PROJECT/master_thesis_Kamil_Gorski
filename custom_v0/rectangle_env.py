@@ -81,6 +81,7 @@ class RectangleEnv(Env):
                for veh_id in self.sorted_ids]
         # stopped_vehicles = list(filter(lambda x: x < 0.01, speed))
         # print(stopped_vehicles)
+
         return np.array(speed + pos)
 
     def additional_command(self):
