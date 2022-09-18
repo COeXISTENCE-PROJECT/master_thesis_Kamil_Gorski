@@ -8,10 +8,12 @@ from flow.controllers.routing_controllers import ContinuousRouter
 
 vehicles = VehicleParams()
 vehicles.add("human",
-            acceleration_controller=(IDMController, {}),
+            acceleration_controller=(IDMController, {
+                'noise': 0.2
+            }),
             routing_controller=(ContinuousRouter, {}),
             car_following_params=SumoCarFollowingParams(
-            min_gap=0.0,
+                min_gap=0.0,
             ),
             num_vehicles=22)
 
@@ -19,8 +21,8 @@ additional_net_params = ADDITIONAL_NET_PARAMS.copy()
 
 net_params = NetParams(additional_params=additional_net_params)
 
-sim_params = SumoParams(render=True, sim_step=0.1)
-initial_config = InitialConfig(spacing="uniform", bunching=10)
+sim_params = SumoParams(render=True, sim_step=0.1, emission_path="data")
+initial_config = InitialConfig(spacing="uniform", bunching=5)
 env_params = EnvParams(additional_params=ADDITIONAL_ENV_PARAMS)
 
 flow_params = dict(
