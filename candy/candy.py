@@ -10,7 +10,7 @@ from flow.networks.figure_eight import ADDITIONAL_NET_PARAMS
 HORIZON = 1500
 
 
-sim_params = SumoParams(sim_step=0.1, render=False, emission_path=None)
+sim_params = SumoParams(sim_step=0.1, render=True, emission_path=None)
 
 vehicles = VehicleParams()
 vehicles.add(
