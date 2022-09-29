@@ -1,8 +1,8 @@
-from flow.core import rewards
+
 from flow.envs.base import Env
 
 from gym.spaces.box import Box
-
+from gym import spaces
 import numpy as np
 
 ADDITIONAL_ENV_PARAMS = {
@@ -11,7 +11,7 @@ ADDITIONAL_ENV_PARAMS = {
     # maximum deceleration for autonomous vehicles, in m/s^2
     'max_decel': 3,
     # desired velocity for all vehicles in the network, in m/s
-    'target_velocity': 10,
+    'target_velocity': 20,
     # specifies whether vehicles are to be sorted by position during a
     # simulation step. If set to True, the environment parameter
     # self.sorted_ids will return a list of all vehicles sorted in accordance
@@ -20,7 +20,7 @@ ADDITIONAL_ENV_PARAMS = {
 }
 
 
-class AccelEnv(Env):
+class EightEnv(Env):
     """Fully observed acceleration environment.
 
     This environment used to train autonomous vehicles to improve traffic flows
@@ -74,17 +74,20 @@ class AccelEnv(Env):
         # distance traveled
         self.prev_pos = dict()
         self.absolute_position = dict()
-
+        
         super().__init__(env_params, sim_params, network, simulator)
+        num_rl_vehicles = self.initial_vehicles.num_rl_vehicles
+        self.acc = spaces.Tuple([spaces.Discrete(3) for _ in range(num_rl_vehicles)])
 
     @property
     def action_space(self):
         """See class definition."""
-        return Box(
-            low=-abs(self.env_params.additional_params['max_decel']),
-            high=self.env_params.additional_params['max_accel'],
-            shape=(self.initial_vehicles.num_rl_vehicles, ),
-            dtype=np.float32)
+        # return Box(
+        #     low=-abs(self.env_params.additional_params['max_decel']),
+        #     high=self.env_params.additional_params['max_accel'],
+        #     shape=(self.initial_vehicles.num_rl_vehicles, ),
+        #     dtype=np.float32)
+        return self.acc
 
     @property
     def observation_space(self):
@@ -102,13 +105,20 @@ class AccelEnv(Env):
             veh_id for veh_id in self.sorted_ids
             if veh_id in self.k.vehicle.get_rl_ids()
         ]
+        actions_to_accel = {
+            0 : 1.5,
+            1: 0,
+            2: -3.5
+        }
+        rl_actions = list(map(lambda x: actions_to_accel[x], rl_actions))
         self.k.vehicle.apply_acceleration(sorted_rl_ids, rl_actions)
 
     def compute_reward(self, rl_actions, **kwargs):
-        if self.env_params.evaluate:
-            return np.mean(self.k.vehicle.get_speed(self.k.vehicle.get_ids()))
-        else:
-            return rewards.desired_velocity(self, fail=kwargs['fail'])
+        desired_velocity = self.env_params.additional_params['target_velocity']
+        vehicles = len(self.k.vehicle.get_ids())
+        f1 = np.linalg.norm([desired_velocity] * vehicles)
+        f2 = np.linalg.norm(np.array([desired_velocity] * vehicles) - np.array(self.k.vehicle.get_speed(self.k.vehicle.get_ids())))
+        return np.max([f1-f2, 0])/f1
 
     def get_state(self):
         """See class definition."""
